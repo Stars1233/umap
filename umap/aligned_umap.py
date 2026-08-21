@@ -414,9 +414,7 @@ class AlignedUMAP(BaseEstimator):
             indices_list.append(mapper.graph_.indices)
             heads.append(graph_coo.row)
             tails.append(graph_coo.col)
-            epochs_per_samples.append(
-                make_epochs_per_sample(graph_coo.data, n_epochs)
-            )
+            epochs_per_samples.append(make_epochs_per_sample(graph_coo.data, n_epochs))
 
         rng_state_transform = np.random.RandomState(self.transform_seed)
         regularisation_weights = build_neighborhood_similarities(

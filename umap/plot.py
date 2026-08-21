@@ -949,6 +949,7 @@ def connectivity(
 
     return ax
 
+
 def diagnostic(
     umap_object,
     diagnostic_type="pca",
@@ -961,7 +962,7 @@ def diagnostic(
     width=800,
     height=800,
     return_diagnostics=False,
-    plot_result=True
+    plot_result=True,
 ):
     """Provide a diagnostic plot or plots for a UMAP embedding, with options to return diagnostics and control plotting.
     There are a number of plots that can be helpful for diagnostic
@@ -1066,7 +1067,7 @@ def diagnostic(
         dpi = plt.rcParams["figure.dpi"]
         if diagnostic_type in ("local_dim", "neighborhood"):
             width *= 1.1
-        fig = plt.figure(figsize=(width/dpi, height/dpi))
+        fig = plt.figure(figsize=(width / dpi, height / dpi))
         ax = fig.add_subplot(111)
 
     font_color = _select_font_color(background) if plot_result else None
@@ -1082,7 +1083,9 @@ def diagnostic(
         diagnostic_data = color_proj
 
         if plot_result:
-            ax.scatter(points[:, 0], points[:, 1], s=point_size, c=color_proj, alpha=0.66)
+            ax.scatter(
+                points[:, 0], points[:, 1], s=point_size, c=color_proj, alpha=0.66
+            )
             ax.set_title("Colored by RGB coords of PCA embedding")
             ax.text(
                 0.99,
@@ -1105,7 +1108,9 @@ def diagnostic(
         diagnostic_data = color_proj
 
         if plot_result:
-            ax.scatter(points[:, 0], points[:, 1], s=point_size, c=color_proj, alpha=0.66)
+            ax.scatter(
+                points[:, 0], points[:, 1], s=point_size, c=color_proj, alpha=0.66
+            )
             ax.set_title("Colored by RGB coords of FastICA embedding")
             ax.text(
                 0.99,
@@ -1131,7 +1136,9 @@ def diagnostic(
         diagnostic_data = color_proj
 
         if plot_result:
-            ax.scatter(points[:, 0], points[:, 1], s=point_size, c=color_proj, alpha=0.66)
+            ax.scatter(
+                points[:, 0], points[:, 1], s=point_size, c=color_proj, alpha=0.66
+            )
             ax.set_title("Colored by RGB coords of Vector Quantization")
             ax.text(
                 0.99,
@@ -1230,9 +1237,11 @@ def diagnostic(
         if plot_result:
             cols = int(len(_diagnostic_types) ** 0.5 // 1)
             rows = len(_diagnostic_types) // cols + 1
-            fig, axs = plt.subplots(rows, cols, figsize=(10, 10), constrained_layout=True)
+            fig, axs = plt.subplots(
+                rows, cols, figsize=(10, 10), constrained_layout=True
+            )
             axs = axs.flat
-            for ax in axs[len(_diagnostic_types):]:
+            for ax in axs[len(_diagnostic_types) :]:
                 ax.remove()
             diagnostic_data = {}
             for ax, plt_type in zip(axs, _diagnostic_types):
@@ -1242,7 +1251,7 @@ def diagnostic(
                     ax=ax,
                     point_size=point_size / 4.0,
                     return_diagnostics=True,
-                    plot_result=True
+                    plot_result=True,
                 )
                 diagnostic_data[plt_type] = sub_diagnostic
         else:
@@ -1253,7 +1262,7 @@ def diagnostic(
                     diagnostic_type=plt_type,
                     point_size=point_size / 4.0,
                     return_diagnostics=True,
-                    plot_result=False
+                    plot_result=False,
                 )
                 diagnostic_data[plt_type] = sub_diagnostic
 
@@ -1270,6 +1279,7 @@ def diagnostic(
         return diagnostic_data
     else:
         return ax
+
 
 def interactive(
     umap_object,

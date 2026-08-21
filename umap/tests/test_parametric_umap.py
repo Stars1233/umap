@@ -158,3 +158,33 @@ def test_landmark_retraining_no_nan():
     p.fit(x2)
     assert not np.any(np.isnan(p._history["loss"][-5:]))
     assert p.parametric_model.landmark_loss_weight == 0.01
+
+
+@tf_only
+def test_umap_loss_grads_finite_under_xla():
+    """UMAP loss must not give NaN gradients when two embeddings coincide.
+
+    jit_compile is forced on so that CPU-only CI exercises the GPU path: Keras
+    resolves jit_compile="auto" to True whenever a GPU is visible.
+    """
+    from umap.parametric_umap import UMAPModel, prepare_networks
+
+    batch_size, dims = 128, 16
+    encoder, decoder = prepare_networks(None, None, 2, [dims], batch_size, False)
+    model = UMAPModel(1.577, 0.895, 5, encoder, decoder)
+
+    to_x = np.random.RandomState(42).rand(batch_size, dims).astype(np.float32)
+    # roll rather than randomise, so coincident pairs are guaranteed every run
+    from_x = np.roll(to_x, batch_size // 2, axis=0)
+
+    @tf.function(jit_compile=True)
+    def grads():
+        with tf.GradientTape() as tape:
+            loss = model._umap_loss(model((to_x, from_x)))
+        return tape.gradient(loss, model.trainable_variables)
+
+    # the loss value stays finite while the gradients are already NaN, so this
+    # has to assert on the gradients
+    for g in grads():
+        assert g is not None
+        assert not np.any(np.isnan(np.asarray(g))), "NaN gradient under XLA"

@@ -1214,9 +1214,14 @@ def simplicial_set_embedding(
         ro = np.zeros(n_vertices, dtype=np.float32)
         dists_csr = dists.tocsr()
         _densmap_original_densities(
-            head, tail, graph.data,
-            dists_csr.indptr, dists_csr.indices, dists_csr.data,
-            ro, mu_sum,
+            head,
+            tail,
+            graph.data,
+            dists_csr.indptr,
+            dists_csr.indices,
+            dists_csr.data,
+            ro,
+            mu_sum,
         )
 
         epsilon = 1e-8
@@ -1329,9 +1334,14 @@ def simplicial_set_embedding(
         tail = emb_graph.col
         emb_dists_csr = emb_dists.tocsr()
         _densmap_embedding_densities(
-            head, tail, emb_graph.data,
-            emb_dists_csr.indptr, emb_dists_csr.indices, emb_dists_csr.data,
-            re, mu_sum,
+            head,
+            tail,
+            emb_graph.data,
+            emb_dists_csr.indptr,
+            emb_dists_csr.indices,
+            emb_dists_csr.data,
+            re,
+            mu_sum,
         )
 
         epsilon = 1e-8
@@ -2569,8 +2579,12 @@ class UMAP(BaseEstimator, ClassNamePrefixFeaturesOutMixin):
                             "Some rows contain fewer than n_neighbors distances!"
                         )
                     # argpartition selects the k smallest in O(d) vs O(d·log d) for argsort
-                    row_nn_data_indices = np.argpartition(row_data, self._n_neighbors)[: self._n_neighbors]
-                    row_nn_data_indices = row_nn_data_indices[np.argsort(row_data[row_nn_data_indices])]
+                    row_nn_data_indices = np.argpartition(row_data, self._n_neighbors)[
+                        : self._n_neighbors
+                    ]
+                    row_nn_data_indices = row_nn_data_indices[
+                        np.argsort(row_data[row_nn_data_indices])
+                    ]
                     self._knn_indices[row_id] = row_indices[row_nn_data_indices]
                     self._knn_dists[row_id] = row_data[row_nn_data_indices]
             else:
@@ -3126,15 +3140,23 @@ class UMAP(BaseEstimator, ClassNamePrefixFeaturesOutMixin):
                         raise ValueError(
                             f"Need at least n_neighbors ({self.n_neighbors}) distances for each row!"
                         )
-                    row_nn_data_indices = np.argpartition(row_data, self._n_neighbors)[: self._n_neighbors]
-                    row_nn_data_indices = row_nn_data_indices[np.argsort(row_data[row_nn_data_indices])]
+                    row_nn_data_indices = np.argpartition(row_data, self._n_neighbors)[
+                        : self._n_neighbors
+                    ]
+                    row_nn_data_indices = row_nn_data_indices[
+                        np.argsort(row_data[row_nn_data_indices])
+                    ]
                     indices[i] = row_indices[row_nn_data_indices]
                     dists[i] = row_data[row_nn_data_indices]
             else:
-                indices = np.argpartition(X, self._n_neighbors, axis=1)[:, : self._n_neighbors]
+                indices = np.argpartition(X, self._n_neighbors, axis=1)[
+                    :, : self._n_neighbors
+                ]
                 dists = np.take_along_axis(X, indices, axis=1)
                 sorted_idx = np.argsort(dists, axis=1)
-                indices = np.take_along_axis(indices, sorted_idx, axis=1).astype(np.int32)
+                indices = np.take_along_axis(indices, sorted_idx, axis=1).astype(
+                    np.int32
+                )
                 dists = np.take_along_axis(dists, sorted_idx, axis=1)
             assert np.min(indices) >= 0 and np.min(dists) >= 0.0
         elif self._small_data:
