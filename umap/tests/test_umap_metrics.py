@@ -1,5 +1,6 @@
 import numpy as np
-from numpy.testing import assert_array_almost_equal
+import numba
+from numpy.testing import assert_array_almost_equal, assert_array_equal
 import umap.distances as dist
 import umap.sparse as spdist
 
@@ -256,6 +257,67 @@ def test_yule(binary_data, binary_distances):
 # ---------------------------
 # Sparse Spatial Metric Tests
 # ---------------------------
+
+
+@pytest.mark.parametrize("empty_on_left", [False, True])
+def test_arr_union_copies_nonempty_input(empty_on_left):
+    indices = np.array([0, 2], dtype=np.int32)
+    empty = np.array([], dtype=np.int32)
+
+    result = (
+        spdist.arr_union(empty, indices)
+        if empty_on_left
+        else spdist.arr_union(indices, empty)
+    )
+
+    assert_array_equal(result, indices)
+    assert result.dtype == indices.dtype
+    assert not np.shares_memory(result, indices)
+
+
+@pytest.mark.parametrize("empty_on_left", [False, True])
+def test_sparse_sum_preserves_inputs_when_removing_zeros(empty_on_left):
+    indices = np.array([0, 2], dtype=np.int32)
+    data = np.array([0.0, 2.0], dtype=np.float32)
+    empty_indices = np.array([], dtype=np.int32)
+    empty_data = np.array([], dtype=np.float32)
+    original_indices = indices.copy()
+    original_data = data.copy()
+
+    if empty_on_left:
+        result_indices, result_data = spdist.sparse_sum(
+            empty_indices, empty_data, indices, data
+        )
+    else:
+        result_indices, result_data = spdist.sparse_sum(
+            indices, data, empty_indices, empty_data
+        )
+
+    assert_array_equal(indices, original_indices)
+    assert_array_equal(data, original_data)
+    assert_array_equal(result_indices, np.array([2], dtype=np.int32))
+    assert_array_equal(result_data, np.array([2.0], dtype=np.float32))
+
+
+@pytest.mark.parametrize("empty_on_left", [False, True])
+def test_sparse_euclidean_accepts_arrays_captured_by_custom_metric(empty_on_left):
+    captured_indices = np.array([0, 2], dtype=np.int32)
+    captured_data = np.array([0.0, 2.0], dtype=np.float32)
+    empty_indices = np.array([], dtype=np.int32)
+    empty_data = np.array([], dtype=np.float32)
+
+    @numba.njit()
+    def custom_metric(other_indices, other_data):
+        if empty_on_left:
+            return spdist.sparse_euclidean(
+                other_indices, other_data, captured_indices, captured_data
+            )
+        return spdist.sparse_euclidean(
+            captured_indices, captured_data, other_indices, other_data
+        )
+
+    assert custom_metric(empty_indices, empty_data) == 2.0
+    assert_array_equal(captured_indices, np.array([0, 2], dtype=np.int32))
 
 
 def test_sparse_euclidean(sparse_spatial_data):
