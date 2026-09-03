@@ -170,6 +170,33 @@ def test_disconnected_data(num_isolates, metric, force_approximation):
         assert number_of_nan >= num_isolates * model.n_components
 
 
+def test_disconnection_distance_keeps_sigma_finite():
+    """A point whose k-nn list mixes kept and pruned neighbours must keep a finite
+    sigma, so that its remaining edges are weighted by the usual kernel rather
+    than all set to 1.0 (the pruned neighbours used to make the row mean, and
+    hence the sigma floor, infinite)."""
+    rng = np.random.RandomState(0)
+    small = rng.normal(0, 0.3, (8, 5)).astype(np.float32)
+    big = (rng.normal(0, 1.0, (300, 5)) + 10.0).astype(np.float32)
+    data = np.vstack([small, big])
+    for force_approximation in (False, True):
+        model = UMAP(
+            n_neighbors=15,
+            disconnection_distance=5.0,
+            random_state=42,
+            force_approximation_algorithm=force_approximation,
+        ).fit(data)
+        assert np.all(np.isfinite(model._sigmas))
+        rows = model.graph_.tocsr()[:8].toarray()
+        # each small-cluster point keeps its 7 in-cluster edges; the nearest
+        # neighbour (and reciprocal nearest neighbours) have strength 1, the
+        # others are strictly weaker instead of all being 1.0
+        assert np.all((rows > 0.0).sum(axis=1) == 7)
+        assert np.all(rows[rows > 0.0] <= 1.0)
+        assert np.all((rows == 1.0).sum(axis=1) < (rows > 0.0).sum(axis=1))
+        assert np.all([row[row > 0.0].min() < 0.9 for row in rows])
+
+
 @pytest.mark.parametrize("num_isolates", [1])
 @pytest.mark.parametrize("sparse", [True, False])
 def test_disconnected_data_precomputed(num_isolates, sparse):
