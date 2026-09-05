@@ -193,7 +193,17 @@ def smooth_knn_dist(distances, k, n_iter=64, local_connectivity=1.0, bandwidth=1
     rho = np.zeros(distances.shape[0], dtype=np.float32)
     result = np.zeros(distances.shape[0], dtype=np.float32)
 
-    mean_distances = np.mean(distances)
+    # Neighbours pruned by disconnection_distance (or inf entries of a
+    # precomputed distance matrix) arrive here as inf. They must be excluded
+    # from rho and from the MIN_K_DIST_SCALE floor: the mean of a row that
+    # contains inf is inf, which made sigma inf for every point with a pruned
+    # neighbour and gave all of its remaining edges membership strength 1.0.
+    flat_distances = distances.ravel()
+    finite_distances = flat_distances[np.isfinite(flat_distances)]
+    if finite_distances.shape[0] > 0:
+        mean_distances = np.mean(finite_distances)
+    else:
+        mean_distances = 0.0
 
     for i in numba.prange(distances.shape[0]):
         lo = 0.0
@@ -202,7 +212,8 @@ def smooth_knn_dist(distances, k, n_iter=64, local_connectivity=1.0, bandwidth=1
 
         # TODO: This is very inefficient, but will do for now. FIXME
         ith_distances = distances[i]
-        non_zero_dists = ith_distances[ith_distances > 0.0]
+        finite_ith_distances = ith_distances[np.isfinite(ith_distances)]
+        non_zero_dists = finite_ith_distances[finite_ith_distances > 0.0]
         if non_zero_dists.shape[0] >= local_connectivity:
             index = int(np.floor(local_connectivity))
             interpolation = local_connectivity - index
@@ -244,7 +255,7 @@ def smooth_knn_dist(distances, k, n_iter=64, local_connectivity=1.0, bandwidth=1
 
         # TODO: This is very inefficient, but will do for now. FIXME
         if rho[i] > 0.0:
-            mean_ith_distances = np.mean(ith_distances)
+            mean_ith_distances = np.mean(finite_ith_distances)
             if result[i] < MIN_K_DIST_SCALE * mean_ith_distances:
                 result[i] = MIN_K_DIST_SCALE * mean_ith_distances
         else:
